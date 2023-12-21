@@ -127,7 +127,7 @@ p5 <-  cvdata[cvdata$simtype == "Scenario: Complete",] |>
 ggsave("figures/sims_CV_partial.png", p4, width = 9, height = 5)
 ggsave("figures/sims_CV_complete.png", p5, width = 9, height = 5)
 
-# True RMSE (appendix with RF-GLS) ----
+# RF-GLS ----
 accdata <- dplyr::select(res, range, dsample, simtype, contains("_surface_")) |>
   pivot_longer(contains("_RMSE"), names_to = "stat", values_to = "RMSE") |>
   group_by(stat) |>
@@ -135,12 +135,30 @@ accdata <- dplyr::select(res, range, dsample, simtype, contains("_surface_")) |>
          Model = as.factor(ifelse(Model == "RFGLS", "RF-GLS", Model)),
          Model = fct_relevel(Model, "RF-GLS", after = 5)) |>
   ungroup()
-p6 <- ggplot(accdata) +
+accdata2 <- accdata[!grepl("RFGLS", accdata$stat),] |>
+  group_by(range, dsample, simtype, Model) |>
+  summarise(RMSE = median(RMSE)) |>
+  group_by(range, dsample, simtype) |>
+  filter(RMSE == min(RMSE)) |>
+  ungroup()
+accdata3 <- data.frame()
+for(i in 1:nrow(accdata2)){
+  accdata3 <- rbind(accdata3,
+                    filter(accdata,
+                           range == accdata2$range[i],
+                           dsample == accdata2$dsample[i],
+                           simtype == accdata2$simtype[i],
+                           Model == accdata2$Model[i]))
+}
+accdata3$Model <- "Best-performing standard RF"
+accdata3 <- rbind(accdata3, filter(accdata, Model == "RF-GLS"))
+
+p6 <- ggplot(accdata3) +
   geom_boxplot(aes(y = RMSE, x = dsample, col = Model)) +
-  scale_color_brewer(palette = "Dark2") +
+  scale_color_manual(values = c("grey60", "black")) +
   facet_grid(range ~ simtype) +
   labs(colour = "Model") +
   xlab("Sampling pattern") + ylab("RMSE") +
   theme_bw() +
   theme(legend.position = "bottom")
-# ggsave("figures/sims_RF-GLS.png", p6, width = 7, height = 5)
+ggsave("figures/sims_RF-GLS.png", p6, width = 7, height = 5)
