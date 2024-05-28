@@ -1,6 +1,6 @@
 # Random forests with spatial proxies for environmental modelling: opportunities and pitfalls
 
-This repository contains the code and data for the paper "Random forests with spatial proxies for environmental modelling: opportunities and pitfalls" by Carles Milà, Marvin Ludwig, Edzer Pebesma, Cathryn Tonne, and Hanna Meyer. The manuscript has been submitted to the journal *Environmental Modelling & Software*. The content of this repository is organised according to the structure of the article, i.e. a simulation study and two case studies.
+This repository contains the code and data for the paper "Random forests with spatial proxies for environmental modelling: opportunities and pitfalls" by Carles Milà, Marvin Ludwig, Edzer Pebesma, Cathryn Tonne, and Hanna Meyer. The manuscript has been submitted to the journal *Geoscientific Model Development*. The content of this repository is organised according to the structure of the article, i.e. a simulation study and two case studies.
 
 
 ## Simulation study
@@ -9,7 +9,7 @@ The code to run the simulation study is organized as follows:
 
 * [sim_analysis.R](R/simulations/sim_analysis.R): Script that contains the code to run the simulation study. It uses functions defined in [sim_functions.R](R/simulations/sim_functions.R) and [sim_utils.R](R/simulations/sim_utils.R).
 * [fig_simulations.R](R/figures/fig_simulations.R): Script that contains the code to generate the figures with the results of the simulation study.
-* [fig_others.R](R/figures/fig_others.R): Script that contains the code to generate the examples of random fields with different autocorrelation ranges (Supplementary figure S1).
+* [fig_others.R](R/figures/fig_others.R): Script that contains the code to generate the examples of random fields with different autocorrelation ranges, as well as the study cases station maps.
 
 The files containing the results of the simulation study can be found [here](results/simulations).
 

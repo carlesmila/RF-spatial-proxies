@@ -6,8 +6,9 @@ library("tidyverse")
 library("knitr")
 library("CAST")
 library("caret")
-library("gridExtra")
+library("cowplot")
 library("gstat")
+library("gridExtra")
 library("sf")
 library("terra")
 library("tmap")
@@ -69,17 +70,17 @@ p2 <- ggplot() +
   scale_color_brewer(palette = "Paired") +
   labs(col = "CV folds") +
   ggtitle("kNNDM 10-fold CV station assignment")
-p3 <- plot_geodist(traindata, spain, cvfolds = rCVfolds, showPlot = F, stat = "ecdf")$plot +
-  theme_bw() +
-  theme(legend.title = element_blank(), legend.position = "bottom") +
-  ggtitle("Random 10-fold CV nearest neighbour distances")
-p4 <- plot_geodist(traindata, spain, cvfolds = sCVfolds, showPlot = F, stat = "ecdf")$plot +
-  theme_bw() +
-  theme(legend.title = element_blank(), legend.position = "bottom") +
-  ggtitle("kNNDM 10-fold CV nearest neighbour distances")
-# png("figures/temp_CVmap.png", width = 3000, height = 2000, res = 300)
-# grid.arrange(p1, p2, p3, p4, ncol = 2)
-# dev.off()
+p3 <- plot(geodist(traindata, spain, cvfolds = rCVfolds), stat="ecdf") +
+  ggtitle("Random 10-fold CV nearest neighbour distances") +
+  theme(legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8))
+p4 <- plot(geodist(traindata, spain, cvfolds = sCVfolds), stat="ecdf") +
+  ggtitle("kNNDM 10-fold CV nearest neighbour distances") +
+  theme(legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8))
+pall <- plot_grid(p1, p2, p3, p4, ncol=2)
+pall
+# save_plot("figures/temp_CVmap.pdf", pall, base_height = 7.5, base_asp = 1.45)
 
 
 # Figure: variograms ----
@@ -129,19 +130,19 @@ mod <- readRDS("results/case/temp_complete_RFsp.rds")
 traindata$res <- residuals(mod)
 empvar9 <- variogram(as.formula("res~1"), cutoff = 800000, traindata, width = 20000)
 
-# Figure
-png("figures/temp_variograms.png", width = 3500, height = 3600, res = 300)
-grid.arrange(plot(empvar1, fitvar1, main = "Outcome"),
-             plot(empvar2, fitvar2, main = "Naive: Baseline"),
-             plot(empvar3, main = "Naive: Coordinates"),
-             plot(empvar4, main = "Naive: EDF"),
-             plot(empvar5, main = "Naive: RFsp"),
-             plot(empvar6, main = "Complete: Baseline"),
-             plot(empvar7, main = "Complete: Coordinates"),
-             plot(empvar8, main = "Complete: EDF"),
-             plot(empvar9, main = "Complete: RFsp"),
-             ncol = 3)
-dev.off()
+# # Figure
+# pdf("figures/temp_variograms.pdf", width = 9, height = 9)
+# grid.arrange(plot(empvar1, fitvar1, main = "Outcome"),
+#              plot(empvar2, fitvar2, main = "Naive: Baseline"),
+#              plot(empvar3, main = "Naive: Coordinates"),
+#              plot(empvar4, main = "Naive: EDF"),
+#              plot(empvar5, main = "Naive: RFsp"),
+#              plot(empvar6, main = "Complete: Baseline"),
+#              plot(empvar7, main = "Complete: Coordinates"),
+#              plot(empvar8, main = "Complete: EDF"),
+#              plot(empvar9, main = "Complete: RFsp"),
+#              ncol = 3)
+# dev.off()
 
 # Figure: sample distribution ----
 samples_ppp <- as.ppp(st_coordinates(traindata), W = as.owin(spain))
@@ -149,17 +150,23 @@ Gppp <- envelope(samples_ppp, Gest, fix.n = TRUE, global = TRUE)
 Fppp <- envelope(samples_ppp, Fest, fix.n = TRUE, global = TRUE)
 Kppp <- envelope(samples_ppp, Kest, fix.n = TRUE, global = TRUE)
 
-# Plot (in m)
-# png("figures/temp_ppp.png", width = 3200, height = 1200, res = 300)
+# # Plot (in m)
+# pdf("figures/temp_ppp.pdf", width = 9, height = 4)
 # par(mfrow = c(1, 3))
-# plot(Gppp, main = "A)", xlab = "r (m)")
-# plot(Fppp, main = "B)", xlab = "r (m)")
-# plot(Kppp, main = "C)", xlab = "r (m)")
+# plot(Gppp, xlab = "r (m)", main = "A)")
+# plot(Fppp, xlab = "r (m)", main = "B)")
+# plot(Kppp, xlab = "r (m)", main = "C)")
 # par(mfrow = c(1, 1))
 # dev.off()
 
 # Table: results ----
 tabboth <- rbind(tab_naive, tab_complete) |>
+  mutate(random_RMSE = paste0(round(random_RMSE_mean, 2),
+                              " (", round(random_RMSE_sd, 2), ")"),
+         random_Rsquared = paste0(round(random_Rsquared_mean, 2),
+                              " (", round(random_Rsquared_sd, 2), ")")) |>
+  dplyr::select(-random_RMSE_mean, -random_RMSE_sd,
+                -random_Rsquared_mean, -random_Rsquared_sd) |>
   mutate(improxy = 100-impfeat,
          nonAOA = 100-AOA*100) |>
   select(predictors, model,
@@ -196,4 +203,4 @@ predlegend <- tm_shape(preds_complete[[1]]) +
             legend.title.size = 14)
 predmap_both <- tmap_arrange(predmap1, predmap2, predlegend,
                              nrow = 3, heights = c(0.425, 0.425, 0.15))
-# tmap_save(predmap_both, "figures/temp_predictions.png", width = 8, height = 5)
+tmap_save(predmap_both, "figures/temp_predictions.pdf", width = 8, height = 5)

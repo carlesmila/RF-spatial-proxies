@@ -1,28 +1,3 @@
-#' Create an outcome  as a function of 10 predictors
-#' @details
-#' 6 100x100 spherical stationary random fields with mean 0, sill 1,
-#' nugget 0 and varying range are simulated and combined. Random (var=1) noise is
-#' added to the outcome.
-#' @param cov_stack Raster stack of 6 elements names cov1, cov2...
-sim_outcome <- function(cov_stack){
-
-  # Continuous outcome using van der Laan's formula
-  out <- cov_stack$cov1 + cov_stack$cov2*cov_stack$cov3 +
-    cov_stack$cov4 + cov_stack$cov5*cov_stack$cov6
-
-  # Prepare random noise
-  rnoise <- raster(ncols=100, nrows=100, xmn=0, xmx=100, ymn=0, ymx=100)
-  vals <- rnorm(100*100, sd=1)
-  rnoise <- setValues(rnoise, vals)
-
-  # Add noise variables
-  out <- out + rnoise
-  names(out)  <- "outcome"
-
-  return(out)
-}
-
-
 #' Sample simulation
 #' @details
 #' Simulates a series of sampling points for simulation problem 1.

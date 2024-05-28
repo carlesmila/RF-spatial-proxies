@@ -6,8 +6,9 @@ library("tidyverse")
 library("knitr")
 library("CAST")
 library("caret")
-library("gridExtra")
+library("cowplot")
 library("gstat")
+library("gridExtra")
 library("sf")
 library("terra")
 library("tmap")
@@ -53,7 +54,7 @@ preds_complete <- c(rast("results/case/pm25_complete_baseline.tif"),
                     rast("results/case/pm25_complete_RFsp.tif"))
 names(preds_complete) <- c("Baseline","Coordinates", "EDF","RFsp")
 
-# Figure: points, folds, distances ----
+# Appendix: points, folds, distances ----
 p1 <- ggplot() +
   geom_sf(data = spain, alpha = 0) +
   geom_sf(data = traindata, aes(col = rCVfolds), size = 1) +
@@ -68,21 +69,20 @@ p2 <- ggplot() +
   scale_color_brewer(palette = "Paired") +
   labs(col = "CV folds") +
   ggtitle("kNNDM 10-fold CV station assignment")
-p3 <- plot_geodist(traindata, spain, cvfolds = rCVfolds, showPlot = F, stat = "ecdf")$plot +
-  theme_bw() +
-  theme(legend.title = element_blank(), legend.position = "bottom") +
-  ggtitle("Random 10-fold CV nearest neighbour distances")
-p4 <- plot_geodist(traindata, spain, cvfolds = sCVfolds, showPlot = F, stat = "ecdf")$plot +
-  theme_bw() +
-  theme(legend.title = element_blank(), legend.position = "bottom") +
-  ggtitle("kNNDM 10-fold CV nearest neighbour distances")
-grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
-# png("figures/pm25_CVmap.png", width = 3000, height = 2000, res = 300)
-# grid.arrange(p1, p2, p3, p4, ncol = 2)
-# dev.off()
+p3 <- plot(geodist(traindata, spain, cvfolds = rCVfolds), stat="ecdf") +
+  ggtitle("Random 10-fold CV nearest neighbour distances") +
+  theme(legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8))
+p4 <- plot(geodist(traindata, spain, cvfolds = sCVfolds), stat="ecdf") +
+  ggtitle("kNNDM 10-fold CV nearest neighbour distances") +
+  theme(legend.title = element_text(size = 11),
+        legend.text = element_text(size = 8))
+pall <- plot_grid(p1, p2, p3, p4, ncol=2)
+pall
+# save_plot("figures/pm25_CVmap.pdf", pall, base_height = 7.5, base_asp = 1.45)
 
 
-# Figure: variograms ----
+# Appendix: variograms ----
 
 # Raw outcome
 empvar1 <- variogram(as.formula("PM25~1"), cutoff = 700000, traindata, width = 20000)
@@ -130,7 +130,7 @@ traindata$res <- residuals(mod)
 empvar9 <- variogram(as.formula("res~1"), cutoff = 700000, traindata, width = 20000)
 
 # # Figure
-# png("figures/pm25_variograms.png", width = 3500, height = 3600, res = 300)
+# pdf("figures/pm25_variograms.pdf", width = 9, height = 9)
 # grid.arrange(plot(empvar1, fitvar1, main = "Outcome"),
 #              plot(empvar2, fitvar2, main = "Naive: Baseline"),
 #              plot(empvar3, main = "Naive: Coordinates"),
@@ -143,14 +143,14 @@ empvar9 <- variogram(as.formula("res~1"), cutoff = 700000, traindata, width = 20
 #              ncol = 3)
 # dev.off()
 
-# Figure: sample distribution ----
+# Appendix: sample distribution ----
 samples_ppp <- as.ppp(st_coordinates(traindata), W = as.owin(spain))
 Gppp <- envelope(samples_ppp, Gest, fix.n = TRUE, global = TRUE)
 Fppp <- envelope(samples_ppp, Fest, fix.n = TRUE, global = TRUE)
 Kppp <- envelope(samples_ppp, Kest, fix.n = TRUE, global = TRUE)
 
 # # Plot (in m)
-# png("figures/pm25_ppp.png", width = 3200, height = 1200, res = 300)
+# pdf("figures/pm25_ppp.pdf", width = 9, height = 4)
 # par(mfrow = c(1, 3))
 # plot(Gppp, xlab = "r (m)", main = "A)")
 # plot(Fppp, xlab = "r (m)", main = "B)")
@@ -158,8 +158,14 @@ Kppp <- envelope(samples_ppp, Kest, fix.n = TRUE, global = TRUE)
 # par(mfrow = c(1, 1))
 # dev.off()
 
-# Table: results ----
+# Main: results table ----
 tabboth <- rbind(tab_naive, tab_complete) |>
+  mutate(random_RMSE = paste0(round(random_RMSE_mean, 2),
+                              " (", round(random_RMSE_sd, 2), ")"),
+         random_Rsquared = paste0(round(random_Rsquared_mean, 2),
+                                  " (", round(random_Rsquared_sd, 2), ")")) |>
+  dplyr::select(-random_RMSE_mean, -random_RMSE_sd,
+                -random_Rsquared_mean, -random_Rsquared_sd) |>
   mutate(improxy = 100-impfeat,
          nonAOA = 100-AOA*100) |>
   select(predictors, model,
@@ -170,26 +176,26 @@ kable(tabboth, digits = 2)
 print(xtable(tabboth), include.rownames = FALSE)
 
 
-# Figure: Prediction maps ----
+# Main: Prediction maps ----
 colbreaks <- seq(4,20,2)
 predmap1 <- tm_shape(preds_naive) +
   tm_raster(palette = hcl.colors(10, "cividis"),
             style = "fixed", breaks = colbreaks,
-            title = "PM\U02082.\U02085 (\u03bcg/m\U000b3)", midpoint = NA,
+            title = expression(Predicted~PM[2.5]~(mu*g/m^3)), midpoint = NA,
             legend.show = FALSE) +
   tm_facets(nrow = 1) +
   tm_layout(main.title = "A) Naive model", main.title.size = 1.2)
 predmap2 <- tm_shape(preds_complete) +
   tm_raster(palette = hcl.colors(10, "cividis"),
             style = "fixed", breaks = colbreaks,
-            title = "PM\U02082.\U02085 (\u03bcg/m\U000b3)", midpoint = NA,
+            title = expression(Predicted~PM[2.5]~(mu*g/m^3)), midpoint = NA,
             legend.show = FALSE) +
   tm_facets(nrow = 1) +
   tm_layout(main.title = "B) Complete model", main.title.size = 1.2)
 predlegend <- tm_shape(preds_complete[[1]]) +
   tm_raster(palette = hcl.colors(10, "cividis"),
             style = "fixed", breaks = colbreaks,
-            midpoint = NA, title = "               Predicted PM\U02082.\U02085 (\u03bcg/m\U000b3)",
+            midpoint = NA, title = expression(Predicted~PM[2.5]~(mu*g/m^3)),
             legend.format = list(digits=0),
             legend.is.portrait = FALSE) +
   tm_layout(legend.position=c("center", "bottom"), legend.only = TRUE,
@@ -197,4 +203,4 @@ predlegend <- tm_shape(preds_complete[[1]]) +
             legend.title.size = 14)
 predmap_both <- tmap_arrange(predmap1, predmap2, predlegend,
                              nrow = 3, heights = c(0.425, 0.425, 0.15))
-# tmap_save(predmap_both, "figures/pm25_predictions.png", width = 8, height = 5)
+tmap_save(predmap_both, "figures/pm25_predictions.pdf", width = 8, height = 5)
