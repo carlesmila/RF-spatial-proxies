@@ -1,6 +1,6 @@
 # Random forests with spatial proxies for environmental modelling: opportunities and pitfalls
 
-This repository contains the code and data for the paper "Random forests with spatial proxies for environmental modelling: opportunities and pitfalls" by Carles Milà, Marvin Ludwig, Edzer Pebesma, Cathryn Tonne, and Hanna Meyer. The manuscript has been submitted to the journal *Geoscientific Model Development*. The content of this repository is organised according to the structure of the article, i.e. a simulation study and two case studies.
+This repository contains the code and data for the paper "Random forests with spatial proxies for environmental modelling: opportunities and pitfalls" by Carles Milà, Marvin Ludwig, Edzer Pebesma, Cathryn Tonne, and Hanna Meyer. The manuscript has been [published](https://doi.org/10.5194/gmd-17-6007-2024) in the journal *Geoscientific Model Development*. The content of this repository is organised according to the structure of the article, i.e. a simulation study and two case studies.
 
 
 ## Simulation study
